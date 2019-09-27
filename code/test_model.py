@@ -1,7 +1,7 @@
 import torch
 import sys
 import cv2
-from utils import normalization,denormalize
+from code.utils import normalization,denormalize
 import numpy as np
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")

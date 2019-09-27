@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from code.cnn_utils import CycleGenerator
 from code.cnn_utils import RensetGenerator, PatchDiscriminator
 from code.utils import ImagePool
-from code.cnn_utils import CycleDiscriminator
 import itertools
 from code.loss_utils import real_mse_loss, fake_mse_loss, cycle_consistency_loss
 from code.init_model import init_weights

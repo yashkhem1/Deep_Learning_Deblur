@@ -1,8 +1,8 @@
 import torch
 import cv2
 import sys
-from utils import dice_coeff,dice_loss,normalization,denormalize,ab_rel_diff,sq_rel_diff,rms_linear
-from data_loader import NYU_Depth_V2, NYU_Depth_V2_v2
+from code.utils import dice_coeff,dice_loss,normalization,denormalize,ab_rel_diff,sq_rel_diff,rms_linear
+from code.data_loader import NYU_Depth_V2, NYU_Depth_V2_v2
 
 def set_requires_grad(nets, requires_grad=False):
 
