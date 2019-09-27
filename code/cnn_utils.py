@@ -445,7 +445,9 @@ class SRN_block(nn.module):
         ## Insert LSTM here later
         model += [DecoderResblock(ngf*4,ngf*2,True,padding_type)]
         model += [DecoderResblock(ngf*2, ngf, True, padding_type)]
-        model += [DecoderResblock(ngf,output_nc, True, padding_type)]
+        for i in range(3):
+            model += [ResnetBlock(input_nc, padding_type,False, False, False)]
+        model += [nn.ReflectionPad2d(2), nn.Conv2d(input_nc, output_nc, kernel_size=5, stride=1, padding=0)] #Without RELU
 
         self.model = nn.Sequential(*model)
 

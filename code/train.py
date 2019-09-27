@@ -78,49 +78,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # print(dataset_size)
 def train(opt, model_name):
-	if model_name == 'pix2pix':  #This is for Arpit's version of Pix2Pix
-		model = Pix2Pix(opt)
-		# best_model_wts = copy.deepcopy(model.state_dict())
-		# best_acc = 0.0
-		for epoch in range(opt.epochs):
-			since = time.time()
-			print('Epoch ' + str(epoch) + ' running')
-			for phase in range(2):
-				val_dice = 0
-				count = 0
-				for i, Data in enumerate(dataloader[phase]):
-					inputs, masks = Data
-					inputs, masks = inputs.to(device), masks.to(device)
-					inputs = normalization(inputs)  ##Changes made here
-					masks = normalization(masks)
-					inputs, masks = Variable(inputs), Variable(masks)  ##Ye Variable kyu likha hai ek baar batana
-					Data = inputs, masks                               ## --> kyuki isse computation fast ho jaata
-																	   ## memoization ki vajah se
-					with torch.set_grad_enabled(phase == 0):
-						model.get_input(Data)
-						if phase == 0:
-							model.optimize()
 
-						else:
-							pred_mask = model.forward(inputs)
-
-							for j in range(pred_mask.size()[0]):
-								cv2.imwrite( os.path.join('../results/pred_masks',
-									'mask_{}_{}_{}.png'.format(i, j, epoch)),
-								  np.array(denormalize(pred_mask[j]).cpu().detach()).reshape(256, 256, 3))
-								cv2.imwrite( os.path.join('../results/inputs',
-									'input_{}_{}_{}.png'.format(i, j, epoch)),
-								  np.array(denormalize(inputs[j]).cpu().detach()).reshape(256, 256, 3))
-
-							val_dice += dice_coeff(denormalize(pred_mask, flag=1), denormalize(masks, flag=1))
-							count += 1
-			print("Validation Dice Coefficient is " + str(val_dice/count))
-			time_elapsed = time.time() - since
-			print('Epoch completed in {:.0f}m {:.0f}s'.format(
-        			time_elapsed // 60, time_elapsed % 60))
-
-
-	elif model_name == 'CycleGAN':
+	if model_name == 'CycleGAN':
 		model = cycleGan(cg_opt)
 		print_freq = 10
 		train_iter = iter(cg_train_loader)
