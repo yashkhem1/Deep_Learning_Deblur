@@ -181,7 +181,7 @@ class RensetGenerator(nn.Module):
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func==nn.InstanceNorm2d
         else:
-            use_bias = norm_layer==nn.InstanceNorm2d
+            use_bias = norm_layer!=nn.InstanceNorm2d
 
         model = [nn.ReflectionPad2d(3), nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
                  norm_layer(ngf),nn.ReLU(True)]
@@ -230,7 +230,10 @@ class ResnetBlock(nn.Module):
         else:
             p=1
 
-        model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias), norm_layer(dim), nn.ReLU(True)]
+        if norm_layer is not None:
+             model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias), norm_layer(dim), nn.ReLU(True)]
+        else:
+            model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),  nn.ReLU(True)]
         if use_dropout:
             model+= [nn.Dropout(0.5)]
 
@@ -242,7 +245,8 @@ class ResnetBlock(nn.Module):
         else:
             p=1
 
-        model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias), norm_layer(dim)]
+        if norm_layer is not None:
+            model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias), norm_layer(dim)]
 
         self.model = nn.Sequential(*model)
 
@@ -387,3 +391,66 @@ class UnetGenerator(nn.Module):
     def forward(self, input):
         """Standard forward"""
         return self.model(input)
+
+
+##### For Scale-Recurrent Network ##########
+
+class EncoderResblock(nn.module):
+
+    def __init__(self,input_nc, output_nc, half, padding_type='replicate', norm_layer=None):
+        super(EncoderResblock,self).__init__()
+        if half:
+            model = [nn.ReflectionPad2d(2), nn.Conv2d(input_nc, output_nc, kernel_size=5, stride=2, padding=0),
+                     nn.ReLU(True)]
+        else:
+            model = [nn.ReflectionPad2d(2), nn.Conv2d(input_nc, output_nc, kernel_size=5, stride=1, padding=0),
+                     nn.ReLU(True)]
+
+        for i in range(3):
+            model+= [ResnetBlock(output_nc,padding_type,norm_layer,False,False)]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self,input):
+        return self.model(input)
+
+
+class DecoderResblock(nn.module):
+    def __init__(self, input_nc, output_nc, double, padding_type='replicate', norm_layer=None):
+        super(DecoderResblock, self).__init__()
+        model=[]
+        for i in range(3):
+            model += [ResnetBlock(input_nc, padding_type, norm_layer, False, False)]
+
+        if double:
+            model = [nn.ReflectionPad2d(2), nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=2, padding=0),
+                     nn.ReLU(True)]
+        else:
+            model = [nn.ReflectionPad2d(2), nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=1, padding=0),
+                     nn.ReLU(True)]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, input):
+        return self.model(input)
+
+
+class SRN_block(nn.module):
+    def __init__(self,input_nc,output_nc,ngf=32,padding_type='replicate'):
+        super(SRN_block,self).__init__()
+        model = []
+        model += [EncoderResblock(input_nc,ngf,False,padding_type)]
+        model += [EncoderResblock(ngf, ngf*2, True, padding_type)]
+        model += [EncoderResblock(ngf*2, ngf*4, True, padding_type)]
+        ## Insert LSTM here later
+        model += [DecoderResblock(ngf*4,ngf*2,True,padding_type)]
+        model += [DecoderResblock(ngf*2, ngf, True, padding_type)]
+        model += [DecoderResblock(ngf,output_nc, True, padding_type)]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self,input):
+        return self.model(input)
+
+
+
