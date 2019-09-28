@@ -80,28 +80,27 @@ class GOPRODataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         if self.data_type == 'train':
-            if self.X_train[idx][12:-7] == self.y_train[idx][14:-9]:
-                imgX = np.array(cv2.imread(self.X_train[idx]))
-                imgy = np.array(cv2.imread(self.y_train[idx]))
-                a = random.randint(0,imgX.shape[0]-self.windowSize-2)
-                # print('Random call hua hai')
-                b = random.randint(0,imgX.shape[1]-self.windowSize-2)
-                imgX = imgX[a:a+self.windowSize,b:b+self.windowSize]
-                imgy = imgy[a:a+self.windowSize,b:b+self.windowSize]
-                X = np.array(imgX).reshape(3,self.windowSize,self.windowSize)
-                y = np.array(imgy).reshape(3,self.windowSize,self.windowSize)
+            # if self.X_train[idx][12:-7] == self.y_train[idx][14:-9]:
+            imgX = np.array(cv2.imread(self.X_train[idx]))
+            imgy = np.array(cv2.imread(self.y_train[idx]))
+            a = random.randint(0,imgX.shape[0]-self.windowSize-2)
+            # print('Random call hua hai')
+            b = random.randint(0,imgX.shape[1]-self.windowSize-2)
+            imgX = imgX[a:a+self.windowSize,b:b+self.windowSize]
+            imgy = imgy[a:a+self.windowSize,b:b+self.windowSize]
+            X = np.array(imgX).reshape(3,self.windowSize,self.windowSize)
+            y = np.array(imgy).reshape(3,self.windowSize,self.windowSize)
 
-            else:
-                raise ValueError
+            # else:
+            #     raise ValueError
 
             return torch.from_numpy(X).float(), torch.from_numpy(y).float()
 
         if self.data_type == 'test':
-            if self.X_test[idx][12:-7] == self.y_test[idx][14:-9]:
-
-                X = np.array(cv2.imread(self.X_test[idx])).transpose(2,0,1)
-                y = np.array(cv2.imread(self.y_test[idx])).transpose(2,0,1)  # Changes made in the above lines
-            else:
-                raise ValueError
+            # if self.X_test[idx][12:-7] == self.y_test[idx][14:-9]:
+            X = np.array(cv2.imread(self.X_test[idx])).transpose(2,0,1)
+            y = np.array(cv2.imread(self.y_test[idx])).transpose(2,0,1)  # Changes made in the above lines
+            # else:
+            #     raise ValueError
 
             return torch.from_numpy(X).float(), torch.from_numpy(y).float()

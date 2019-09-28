@@ -8,7 +8,7 @@ from torch.optim import lr_scheduler
 import time
 import copy
 from torch.autograd import Variable
-from code.utils import normalization, denormalize, scale_down
+from code.utils import normalization, denormalize, scale_down, scale_up
 from code.data_loader import GOPRODataset
 import cv2
 import numpy as np
@@ -30,9 +30,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def train(opt, model_name):
 
-	train_set = GOPRODataset('train')
+	train_set = GOPRODataset('train', opt.windowSize)
 	print('Loaded training set')
-	test_set = GOPRODataset('test')
+	test_set = GOPRODataset('test', opt.windowSize)
 	print('Loaded val set')
 
 	train_loader = torch.utils.data.DataLoader(train_set,batch_size=opt.train_batch_size,shuffle=True, num_workers=0)
@@ -200,8 +200,8 @@ def train(opt, model_name):
 		train_iter = iter(train_loader)
 		test_iter = iter(test_loader)
 		fixed_X , fixed_Y = test_iter.next()
-		fixed_X = normalization(fixed_X).to(device)
-		fixed_Y = normalization(fixed_Y).to(device)
+		fixed_X = scale_down(fixed_X).to(device)
+		fixed_Y = scale_down(fixed_Y).to(device)
 		loss_multi_scale = []
 
 
@@ -224,27 +224,27 @@ def train(opt, model_name):
 
 
 
-			if (epoch+1)%10 == 0:
+			if (epoch+1)%1 == 0:
 				# torch.set_grad_enabled(False)
 				sharp = model.forward_get(fixed_X)
 				for j in range(sharp.size()[0]):
 					cv2.imwrite( os.path.join('srn_results/pred_sharp',
 						'sharp_{}_{}_{}.png'.format(batch, j, epoch)),
-					  np.array(denormalize(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
-					if epoch == 9:
-						cv2.imwrite( os.path.join('srn_results/inputs',
-							'blur_{}_{}_{}.png'.format(batch, j, epoch)),
-						  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(fixed_X[j].shape[1],fixed_X[j].shape[2], 3))
-						cv2.imwrite( os.path.join('srn_results/inputs',
-							'ground_sharp_{}_{}_{}.png'.format(batch, j, epoch)),
-						  np.array(denormalize(fixed_Y[j]).cpu().detach()).reshape(fixed_Y[j].shape[1],fixed_Y[j].shape[2], 3))
+					  np.array(scale_up(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
+
+					cv2.imwrite( os.path.join('srn_results/inputs',
+						'blur_{}_{}_{}.png'.format(batch, j, epoch)),
+						np.array(scale_up(fixed_X[j]).cpu().detach()).reshape(fixed_X[j].shape[1],fixed_X[j].shape[2], 3))
+					cv2.imwrite( os.path.join('srn_results/inputs',
+						'ground_sharp_{}_{}_{}.png'.format(batch, j, epoch)),
+						np.array(scale_up(fixed_Y[j]).cpu().detach()).reshape(fixed_Y[j].shape[1],fixed_Y[j].shape[2], 3))
 
 
 				# torch.set_grad_enabled(True)
 
 			print("Time to finish epoch ", time.time()-since)
 
-			torch.save(model, 'SRNmodel/best_modelpt')
+			torch.save(model, 'SRNmodel/best_model.pt')
 			loss_multi_scale.append(float(model.ms_loss))
 			with open('SRNloss/loss_ms.pk', 'wb') as f:
 				pickle.dump(loss_multi_scale, f)

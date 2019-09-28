@@ -76,6 +76,7 @@ class SRN_Deblurnet():
 
 
     def backward(self):
+        # print("inputY ki shape" , self.inputY.shape)
         self.ms_loss = multi_scale_loss(self.inputY,self.pred_list,self.n_levels)
         self.ms_loss.backward()
 

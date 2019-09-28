@@ -224,33 +224,37 @@ class ResnetBlock(nn.Module):
         model = []
         p = 0
         if padding_type == 'reflect':
-            model += [nn.ReflectionPad2d(1)]
+            model += [nn.ReflectionPad2d(2)]
         elif padding_type == 'replicate':
-            model += [nn.ReplicationPad2d(1)]
+            model += [nn.ReplicationPad2d(2)]
         else:
-            p=1
+            p=2
 
         if norm_layer is not None:
-             model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias), norm_layer(dim), nn.ReLU(True)]
+             model += [nn.Conv2d(dim, dim, kernel_size=5, padding=p, stride=1), norm_layer(dim), nn.ReLU(True)]
         else:
-            model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),  nn.ReLU(True)]
+            model += [nn.Conv2d(dim, dim, kernel_size=5, padding=p, stride=1),  nn.ReLU(True)]
         if use_dropout:
             model+= [nn.Dropout(0.5)]
 
         p = 0
         if padding_type == 'reflect':
-            model += [nn.ReflectionPad2d(1)]
+            model += [nn.ReflectionPad2d(2)]
         elif padding_type == 'replicate':
-            model += [nn.ReplicationPad2d(1)]
+            model += [nn.ReplicationPad2d(2)]
         else:
-            p=1
+            p=2
 
         if norm_layer is not None:
-            model += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias), norm_layer(dim)]
+            model += [nn.Conv2d(dim, dim, kernel_size=5, padding=p, stride=1), norm_layer(dim)]
+
+        else:
+            model += [nn.Conv2d(dim, dim, kernel_size=5, padding=p, stride=1)]
 
         self.model = nn.Sequential(*model)
 
     def forward(self,x):
+        # print("Resenet me shape" , x.shape)
         out = x + self.model(x)
         return out
 
@@ -395,7 +399,7 @@ class UnetGenerator(nn.Module):
 
 ##### For Scale-Recurrent Network ##########
 
-class EncoderResblock(nn.module):
+class EncoderResblock(nn.Module):
 
     def __init__(self,input_nc, output_nc, half, padding_type='replicate', norm_layer=None):
         super(EncoderResblock,self).__init__()
@@ -412,30 +416,32 @@ class EncoderResblock(nn.module):
         self.model = nn.Sequential(*model)
 
     def forward(self,input):
+        # print("Shaep of input ", input.shape)
         return self.model(input)
 
 
-class DecoderResblock(nn.module):
-    def __init__(self, input_nc, output_nc, double, padding_type='replicate', norm_layer=None):
+class DecoderResblock(nn.Module):
+    def __init__(self, input_nc, output_nc, double,  padding_type='replicate', norm_layer=None):
         super(DecoderResblock, self).__init__()
         model=[]
         for i in range(3):
             model += [ResnetBlock(input_nc, padding_type, norm_layer, False, False)]
 
         if double:
-            model = [nn.ReflectionPad2d(2), nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=2, padding=0),
+            model = [nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=2, padding=2, output_padding=1),
                      nn.ReLU(True)]
         else:
-            model = [nn.ReflectionPad2d(2), nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=1, padding=0),
+            model = [nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=1, padding=2),
                      nn.ReLU(True)]
 
         self.model = nn.Sequential(*model)
 
     def forward(self, input):
+        # print("Shaep of input Decoder ", input.shape)
         return self.model(input)
 
 
-class SRN_block(nn.module):
+class SRN_block(nn.Module):
     def __init__(self,input_nc,output_nc,ngf=32,padding_type='replicate'):
         super(SRN_block,self).__init__()
         model = []
@@ -446,8 +452,8 @@ class SRN_block(nn.module):
         model += [DecoderResblock(ngf*4,ngf*2,True,padding_type)]
         model += [DecoderResblock(ngf*2, ngf, True, padding_type)]
         for i in range(3):
-            model += [ResnetBlock(input_nc, padding_type,False, False, False)]
-        model += [nn.ReflectionPad2d(2), nn.Conv2d(input_nc, output_nc, kernel_size=5, stride=1, padding=0)] #Without RELU
+            model += [ResnetBlock(ngf, padding_type,None, False, False)]
+        model += [nn.ReflectionPad2d(2), nn.Conv2d(ngf, output_nc, kernel_size=5, stride=1, padding=0)] #Without RELU
 
         self.model = nn.Sequential(*model)
 
