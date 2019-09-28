@@ -40,6 +40,9 @@ class SRN_Deblurnet():
     def get_input(self,inputX,inputY):
         self.inputX = inputX.to(device)
         self.inputY = inputY.to(device)
+        if (self.opt.train and not(self.opt.color)):
+            self.inputX = torch.sum(inputX,1)/3
+            self.inputY = torch.sum(inputY,1)/3
 
     def forward(self):
         n,c,h,w = self.inputX.shape
@@ -55,13 +58,30 @@ class SRN_Deblurnet():
             inp_pred = self.SRN_block(inp_all).to(device)
             self.pred_list.append(inp_pred)
 
+    def forward_get(self,input):
+        n, c, h, w = input.shape
+        pred_list = []
+        inp_pred = input
+        for i in range(self.n_levels):
+            scale = self.scale ** (self.n_levels - i - 1)
+            hi = int(round(h * scale))
+            wi = int(round(w * scale))
+            inp_blur = resize2d(input, (hi, wi))
+            inp_pred = resize2d(inp_pred, (hi, wi)).detach()
+            inp_all = torch.cat([inp_blur, inp_pred], 1)  ##Concatenating along the color channels
+            inp_pred = self.SRN_block(inp_all).to(device)
+            pred_list.append(inp_pred)
+
+        return pred_list[-1]
+
+
     def backward(self):
-        ms_loss = multi_scale_loss(self.inputY,self.pred_list,self.n_levels)
-        ms_loss.backward()
+        self.ms_loss = multi_scale_loss(self.inputY,self.pred_list,self.n_levels)
+        self.ms_loss.backward()
 
     def change_lr(self,iter):
         lr_new = polynomial_lr(self.base_lr,iter,self.epochs,0.3)
-        self.optimizer = torch.optim.Adam(self.SRN_block.parameters(), lr = lr_new, betas=[opt.beta1,0.999])
+        self.optimizer = torch.optim.Adam(self.SRN_block.parameters(), lr = lr_new, betas=[self.opt.beta1,0.999])
 
     def set_requires_grad(self, nets, requires_grad=False):
 
@@ -72,7 +92,7 @@ class SRN_Deblurnet():
                 for param in net.parameters():
                     param.requires_grad = requires_grad
 
-    def optimizer(self):
+    def optimize(self):
         self.forward()
         self.optimizer.zero_grad()
         self.backward()

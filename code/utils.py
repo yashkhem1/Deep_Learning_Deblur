@@ -22,6 +22,14 @@ def dice_coeff(inputs, target):
 def normalization(X):
     return X / 127.5 - 1.0
 
+def scale_down(X):
+    return X/255.0
+
+def scale_up(X):
+    out = torch.clamp(X,0.0,1.0)
+    return out*255.0
+
+
 def scale(X):
     return 2*X-1
 

@@ -3,13 +3,14 @@ import torch.nn as nn
 import sys
 from code.pix2pix import Pix2Pix
 from code.cycleGAN import cycleGan
+from code.SRN_DeblurNet import SRN_Deblurnet
 from options import Optimizer, cgOptimizer, p2pOptimizer
 from torch.optim import lr_scheduler
 import time
 import copy
 from torch.autograd import Variable
-from code.utils import dice_coeff, normalization, denormalize
-from code.data_loader import NYU_Depth_V2, NYU_Depth_V2_v2
+from code.utils import normalization, denormalize, scale_down
+from code.data_loader import GOPRODataset
 import cv2
 import numpy as np
 import os
@@ -20,71 +21,46 @@ import pickle
 # from torchvision.transforms import ToPILImage
 
 torch.set_default_tensor_type('torch.FloatTensor')
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 # if torch.cuda.is_available():
 # 	torch.set_default_tensor_type('torch.cuda.FloatTensor')
 # else:
 # 	torch.set_default_tensor_type('torch.FloatTensor')
 
-train_set = NYU_Depth_V2('train')
-print('Loaded training set')
-val_set = NYU_Depth_V2('val')
-print('Loaded val set')
-
-# For Resize and Random Crop
-loadSize = 0
-fineSize = 0
-if len(sys.argv) == 3:
-	loadSize = int(sys.argv[1])
-	fineSize = int(sys.argv[2])
-	print("LoadSize and FineSize loaded")
-	cg_train_set = NYU_Depth_V2_v2('train', loadSize, fineSize)
-	print('Loaded training set')
-	cg_val_set = NYU_Depth_V2_v2('val', loadSize, fineSize)
-	print('Loaded val set')
-
-
-
-dataset = {0: train_set, 1: val_set}
-
-if len(sys.argv) == 3:
-	cg_dataset = {0: cg_train_set, 1: cg_val_set}
-	p2p_dataset = {0: cg_train_set, 1: cg_val_set}
-
-else:
-	cg_dataset = {0: train_set, 1: val_set}
-	p2p_dataset = {0: train_set, 1: val_set}
-
-opt = Optimizer(lr=1e-4, beta1=0.5, lambda_L1=0.01, n_epochs=100, batch_size=4)
-
-p2p_opt = p2pOptimizer(input_nc=3, output_nc=3, num_downs=8, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=True, ndf=64, n_layers_D=3, lr=0.0002, beta1=0.5, lambda_L1=5, n_blocks=9, padding_type='reflect')
-
-cg_opt = cgOptimizer(input_nc=3, output_nc=3, ngf=64, norm=nn.InstanceNorm2d, no_dropout=True, n_blocks=9,
-                 padding_type='replicate', ndf=64, n_layers_D = 3, pool_size = 50, lr = 0.0001, beta1 = 0.5 , lambda_A = 5, lambda_B = 5,pool=False)
-
-
-
-dataloader = {x: torch.utils.data.DataLoader(
-    dataset[x], batch_size=opt.batch_size, shuffle=True, num_workers=0) for x in range(2)}
-
-cg_train_loader = torch.utils.data.DataLoader(cg_dataset[0], batch_size = 2, shuffle=True, num_workers=0)
-cg_val_loader = torch.utils.data.DataLoader(cg_dataset[1], batch_size = 4, shuffle=True, num_workers=0)
-
-p2p_train_loader = torch.utils.data.DataLoader(p2p_dataset[0], batch_size = 4, shuffle=True, num_workers=0)
-p2p_val_loader = torch.utils.data.DataLoader(p2p_dataset[1], batch_size = 4, shuffle=True, num_workers=0)
-
-dataset_size = {x: len(dataset[x]) for x in range(2)}
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# print(dataset_size)
 def train(opt, model_name):
 
+	train_set = GOPRODataset('train')
+	print('Loaded training set')
+	test_set = GOPRODataset('test')
+	print('Loaded val set')
+
+	train_loader = torch.utils.data.DataLoader(train_set,batch_size=opt.train_batch_size,shuffle=True, num_workers=0)
+	test_loader = torch.utils.data.DataLoader(test_set,batch_size=opt.test_batch_size,shuffle=True, num_workers=0)
+
+	train_length = len(train_set)
+	test_length = len(test_set)
+	print( "Training Data Size : ", train_length)
+	print("Test Data Size : ", test_length)
+
+	# dataloader = {x: torch.utils.data.DataLoader(
+	# 	dataset[x], batch_size=opt.batch_size, shuffle=True, num_workers=0) for x in range(2)}
+	#
+	# cg_train_loader = torch.utils.data.DataLoader(cg_dataset[0], batch_size=2, shuffle=True, num_workers=0)
+	# cg_val_loader = torch.utils.data.DataLoader(cg_dataset[1], batch_size=4, shuffle=True, num_workers=0)
+	#
+	# p2p_train_loader = torch.utils.data.DataLoader(p2p_dataset[0], batch_size=4, shuffle=True, num_workers=0)
+	# p2p_val_loader = torch.utils.data.DataLoader(p2p_dataset[1], batch_size=4, shuffle=True, num_workers=0)
+	#
+	# dataset_size = {x: len(dataset[x]) for x in range(2)}
+
 	if model_name == 'CycleGAN':
-		model = cycleGan(cg_opt)
+		model = cycleGan(opt)
 		print_freq = 10
-		train_iter = iter(cg_train_loader)
-		val_iter = iter(cg_val_loader)
-		fixed_X , fixed_Y = val_iter.next()
+		train_iter = iter(train_loader)
+		test_iter = iter(test_loader)
+		fixed_X , fixed_Y = test_iter.next()
 		fixed_X = normalization(fixed_X).to(device)
 		fixed_Y = normalization(fixed_Y).to(device)
 		loss_Gl = []
@@ -106,7 +82,6 @@ def train(opt, model_name):
 
 			since = time.time()
 			print("Epoch ", epoch ," entering ")
-			train_iter = iter(cg_train_loader)
 			for batch in range(num_batches):
 				print("Epoch ", epoch ,"Batch ", batch, " running with learning rate ", model.opt.lr)
 				inputX,inputY = train_iter.next()
@@ -121,24 +96,24 @@ def train(opt, model_name):
 
 			if (epoch+1)%10 == 0:
 				# torch.set_grad_enabled(False)
-				depth_map = model.G_XtoY.forward(fixed_X)
-				for j in range(depth_map.size()[0]):
-					if cg_opt.n_blocks==6:
+				sharp = model.G_XtoY.forward(fixed_X)
+				for j in range(sharp.size()[0]):
+					if opt.n_blocks==6:
 						cv2.imwrite( os.path.join('../cgresults/pred_masks',
 							'mask_{}_{}_{}.png'.format(batch, j, epoch)),
-						  np.array(denormalize(depth_map[j]).cpu().detach()).reshape(256,256,3))
+						  np.array(denormalize(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
 						if epoch == 9:
 							cv2.imwrite( os.path.join('../cgresults/inputs',
 								'input_{}_{}_{}.png'.format(batch, j, epoch)),
-							  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(256,256, 3))
+							  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(fixed_X[j].shape[1],fixed_X[j].shape[2], 3))
 					else:
 						cv2.imwrite( os.path.join('../cgresults/r-9-pred_masks',
 									'mask_{}_{}_{}.png'.format(batch, j, epoch)),
-								  np.array(denormalize(depth_map[j]).cpu().detach()).reshape(256,256,3))
+								  np.array(denormalize(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
 						if epoch == 9:
 							cv2.imwrite( os.path.join('../cgresults/r-9-inputs',
 								'input_{}_{}_{}.png'.format(batch, j, epoch)),
-							  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(256,256, 3))
+							  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(fixed_X[j].shape[1],fixed_X[j].shape[2], 3))
 
 				# torch.set_grad_enabled(True)
 
@@ -157,11 +132,11 @@ def train(opt, model_name):
 
 
 	elif model_name == 'P2P':  # This is for Khem's version of Pix2Pix
-		model = Pix2Pix(p2p_opt)
+		model = Pix2Pix(opt)
 		print_freq = 10
-		train_iter = iter(p2p_train_loader)
-		val_iter = iter(p2p_val_loader)
-		fixed_X , fixed_Y = val_iter.next()
+		train_iter = iter(train_loader)
+		test_iter = iter(test_loader)
+		fixed_X , fixed_Y = test_iter.next()
 		fixed_X = normalization(fixed_X).to(device)
 		fixed_Y = normalization(fixed_Y).to(device)
 		loss_Gl = []
@@ -179,7 +154,6 @@ def train(opt, model_name):
 
 			since = time.time()
 			print("Epoch ", epoch ," entering ")
-			train_iter = iter(p2p_train_loader)
 			for batch in range(num_batches):
 				print("Epoch ", epoch ,"Batch ", batch, " running with learning rate ", model.opt.lr)
 				inputX,inputY = train_iter.next()
@@ -194,18 +168,18 @@ def train(opt, model_name):
 
 			if (epoch+1)%10 == 0:
 				# torch.set_grad_enabled(False)
-				depth_map = model.G.forward(fixed_X)
-				for j in range(depth_map.size()[0]):
+				sharp = model.G.forward(fixed_X)
+				for j in range(sharp.size()[0]):
 					cv2.imwrite( os.path.join('../p2presults/pred_masks',
 						'mask_{}_{}_{}.png'.format(batch, j, epoch)),
-					  np.array(denormalize(depth_map[j]).cpu().detach()).reshape(256,256,3))
+					  np.array(denormalize(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
 					if epoch == 9:
 						cv2.imwrite( os.path.join('../p2presults/inputs',
 							'input_{}_{}_{}.png'.format(batch, j, epoch)),
-						  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(256,256, 3))
+						  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(fixed_X[j].shape[1],fixed_X[j].shape[2], 3))
 						cv2.imwrite( os.path.join('../p2presults/inputs',
 							'ground_depth_{}_{}_{}.png'.format(batch, j, epoch)),
-						  np.array(denormalize(fixed_Y[j]).cpu().detach()).reshape(256,256, 3))
+						  np.array(denormalize(fixed_Y[j]).cpu().detach()).reshape(fixed_Y[j].shape[1],fixed_Y[j].shape[2], 3))
 
 
 				# torch.set_grad_enabled(True)
@@ -221,5 +195,60 @@ def train(opt, model_name):
 				pickle.dump(loss_Dl, f)
 
 
+	elif model_name == 'SRN_Deblur':  # This is for Khem's version of Pix2Pix
+		model = SRN_Deblurnet(opt)
+		print_freq = 10
+		train_iter = iter(train_loader)
+		test_iter = iter(test_loader)
+		fixed_X , fixed_Y = test_iter.next()
+		fixed_X = normalization(fixed_X).to(device)
+		fixed_Y = normalization(fixed_Y).to(device)
+		loss_multi_scale = []
 
-train(opt, 'P2P')
+
+		num_batches = len(train_iter)
+		for epoch in range(2000):
+
+			model.change_lr(epoch)
+
+			since = time.time()
+			print("Epoch ", epoch ," entering ")
+			for batch in range(num_batches):
+				print("Epoch ", epoch ,"Batch ", batch, " running with learning rate ", model.opt.lr)
+				inputX,inputY = train_iter.next()
+				inputX = scale_down(inputX).to(device)
+				inputY = scale_down(inputY).to(device)
+				model.get_input(inputX,inputY)
+				model.optimize()
+				# print("Dx Loss : {:.6f} Dy Loss: {:.6f} Generator Loss: {:.6f} ".format(model.dx_loss, model.dy_loss, model.gen_loss))
+				print("Model Multi Scale Loss " , float(model.ms_loss))
+
+
+
+			if (epoch+1)%10 == 0:
+				# torch.set_grad_enabled(False)
+				sharp = model.forward_get(fixed_X)
+				for j in range(sharp.size()[0]):
+					cv2.imwrite( os.path.join('srn_results/pred_sharp',
+						'sharp_{}_{}_{}.png'.format(batch, j, epoch)),
+					  np.array(denormalize(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
+					if epoch == 9:
+						cv2.imwrite( os.path.join('srn_results/inputs',
+							'blur_{}_{}_{}.png'.format(batch, j, epoch)),
+						  np.array(denormalize(fixed_X[j]).cpu().detach()).reshape(fixed_X[j].shape[1],fixed_X[j].shape[2], 3))
+						cv2.imwrite( os.path.join('srn_results/inputs',
+							'ground_sharp_{}_{}_{}.png'.format(batch, j, epoch)),
+						  np.array(denormalize(fixed_Y[j]).cpu().detach()).reshape(fixed_Y[j].shape[1],fixed_Y[j].shape[2], 3))
+
+
+				# torch.set_grad_enabled(True)
+
+			print("Time to finish epoch ", time.time()-since)
+
+			torch.save(model, 'SRNmodel/best_modelpt')
+			loss_multi_scale.append(float(model.ms_loss))
+			with open('SRNloss/loss_ms.pk', 'wb') as f:
+				pickle.dump(loss_multi_scale, f)
+
+
+# train(opt, 'P2P')
