@@ -4,7 +4,6 @@ import sys
 from code.pix2pix import Pix2Pix
 from code.cycleGAN import cycleGan
 from code.SRN_DeblurNet import SRN_Deblurnet
-from options import Optimizer, cgOptimizer, p2pOptimizer
 from torch.optim import lr_scheduler
 import time
 import copy

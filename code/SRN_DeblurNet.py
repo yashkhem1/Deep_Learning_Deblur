@@ -28,7 +28,7 @@ class SRN_Deblurnet():
             self.input_nc = 6
             self.output_nc = 3
 
-        self.SRN_block = SRN_block(opt.input_nc,opt.output_nc,opt.ngf,opt.padding_type).to(device)
+        self.SRN_block = SRN_block(self.input_nc,self.output_nc,opt.ngf,opt.padding_type).to(device)
         self.SRN_block.apply(init_weights)
         print(self.SRN_block)
         print("Parameters ", len(list(self.SRN_block.parameters())))
