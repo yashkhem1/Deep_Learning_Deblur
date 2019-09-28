@@ -54,8 +54,8 @@ class cycleGan():
 
 
     def get_input(self, inputX, inputY):
-        self.inputX = inputX
-        self.inputY = inputY
+        self.inputX = inputX.to(device)
+        self.inputY = inputY.to(device)
 
     def forward(self):
         self.fake_X = self.G_YtoX(self.inputY).to(device)

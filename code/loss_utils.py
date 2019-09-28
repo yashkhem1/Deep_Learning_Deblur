@@ -22,7 +22,7 @@ def cycle_consistency_loss  (real_im, reconstructed_im, lambda_weight):
     return lambda_weight*reconstructed_loss
 
 def resize2d(img, size):
-    return F.adaptive_avg_pool2d(img, size)
+    return F.interpolate(img, size,mode='bilinear')
 
 def multi_scale_loss (real_im, out_list, nlevels):
     loss_total = 0
