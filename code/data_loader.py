@@ -98,8 +98,10 @@ class GOPRODataset(torch.utils.data.Dataset):
 
         if self.data_type == 'test':
             # if self.X_test[idx][12:-7] == self.y_test[idx][14:-9]:
-            X = np.array(cv2.imread(self.X_test[idx])).transpose(2,0,1)
-            y = np.array(cv2.imread(self.y_test[idx])).transpose(2,0,1)  # Changes made in the above lines
+            X = np.array(cv2.imread(self.X_test[idx]))
+            X = X.reshape(3,X.shape[0],X.shape[1])
+            y = np.array(cv2.imread(self.y_test[idx]))
+            y = y.reshape(3,y.shape[0],y.shape[1])# Changes made in the above lines
             # else:
             #     raise ValueError
 

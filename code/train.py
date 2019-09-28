@@ -204,12 +204,11 @@ def train(opt, model_name):
 		fixed_Y = scale_down(fixed_Y).to(device)
 		loss_multi_scale = []
 
-
 		num_batches = len(train_iter)
 		for epoch in range(2000):
 
 			model.change_lr(epoch)
-
+			train_iter = iter(train_loader)
 			since = time.time()
 			print("Epoch ", epoch ," entering ")
 			for batch in range(num_batches):
@@ -217,6 +216,11 @@ def train(opt, model_name):
 				inputX,inputY = train_iter.next()
 				inputX = scale_down(inputX).to(device)
 				inputY = scale_down(inputY).to(device)
+				# if batch==1:
+				# 	cv2.imwrite(os.path.join('srn_results/input_train',
+				# 							 'blur_{}_{}_{}.png'.format(batch, batch, epoch)),
+				# 				np.array(scale_up(inputX[1]).cpu().detach()).reshape(inputX[1].shape[1],
+				# 																	inputX[1].shape[2], 3))
 				model.get_input(inputX,inputY)
 				model.optimize()
 				# print("Dx Loss : {:.6f} Dy Loss: {:.6f} Generator Loss: {:.6f} ".format(model.dx_loss, model.dy_loss, model.gen_loss))
@@ -245,7 +249,7 @@ def train(opt, model_name):
 			print("Time to finish epoch ", time.time()-since)
 
 			torch.save(model, 'SRNmodel/best_model.pt')
-			loss_multi_scale.append(float(model.ms_loss))
+			loss_multi_scale.append(float(model.ms_loss.detach()))
 			with open('SRNloss/loss_ms.pk', 'wb') as f:
 				pickle.dump(loss_multi_scale, f)
 

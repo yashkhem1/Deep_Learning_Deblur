@@ -83,6 +83,7 @@ class SRN_Deblurnet():
     def change_lr(self,iter):
         lr_new = polynomial_lr(self.base_lr,iter,self.epochs,0.3)
         self.optimizer = torch.optim.Adam(self.SRN_block.parameters(), lr = lr_new, betas=[self.opt.beta1,0.999])
+        self.opt.lr = lr_new
 
     def set_requires_grad(self, nets, requires_grad=False):
 
