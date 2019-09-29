@@ -223,13 +223,15 @@ def train(opt, model_name):
 				# 																	inputX[1].shape[2], 3))
 				model.get_input(inputX,inputY)
 				model.optimize()
+				del inputX,inputY
+				torch.cuda.empty_cache()
 				# print("Dx Loss : {:.6f} Dy Loss: {:.6f} Generator Loss: {:.6f} ".format(model.dx_loss, model.dy_loss, model.gen_loss))
 				print("Model Multi Scale Loss " , float(model.ms_loss))
 
 
 
 			if (epoch+1)%1 == 0:
-				# torch.set_grad_enabled(False)
+				torch.set_grad_enabled(False)
 				sharp = model.forward_get(fixed_X)
 				for j in range(sharp.size()[0]):
 					cv2.imwrite( os.path.join('srn_results/pred_sharp',
@@ -244,7 +246,7 @@ def train(opt, model_name):
 						np.array(scale_up(fixed_Y[j]).cpu().detach()).reshape(fixed_Y[j].shape[1],fixed_Y[j].shape[2], 3))
 
 
-				# torch.set_grad_enabled(True)
+				torch.set_grad_enabled(True)
 
 			print("Time to finish epoch ", time.time()-since)
 
