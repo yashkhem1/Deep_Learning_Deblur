@@ -20,15 +20,11 @@ class SRN_Deblurnet():
         self.n_levels = opt.n_levels
         self.color = opt.color
         self.epochs = opt.epochs
-        if not(self.color):
-            self.input_nc = 2
-            self.output_nc = 1
-
-        else:
-            self.input_nc = 6
-            self.output_nc = 3
+        self.input_nc = 6
+        self.output_nc = 3
 
         self.SRN_block = SRN_block(self.input_nc,self.output_nc,opt.ngf,opt.padding_type).to(device)
+        # self.testSRN_block = SRN_block(6,3,opt.ngf,opt.padding_type).to(device)
         self.SRN_block.apply(init_weights)
         print(self.SRN_block)
         print("Parameters ", len(list(self.SRN_block.parameters())))
@@ -40,12 +36,18 @@ class SRN_Deblurnet():
     def get_input(self,inputX,inputY):
         self.inputX = inputX.to(device)
         self.inputY = inputY.to(device)
-        if (self.opt.train and not(self.opt.color)):
+        if (not(self.opt.color)):
             self.inputX = torch.sum(inputX,1)/3
             self.inputY = torch.sum(inputY,1)/3
+            self.inputX= self.inputX.unsqueeze(1)
+            self.inputY = self.inputY.unsqueeze(1)
+            self.inputX = torch.cat([self.inputX,self.inputX,self.inputX],1)
+            # print("X ki shape", self.inputX.shape)
+            self.inputY = torch.cat([self.inputY, self.inputY, self.inputY], 1)
+            # print("Y ki shape", self.inputY.shape)
 
     def forward(self):
-        n,c,h,w = self.inputX.shape
+        _, _, h, w = self.inputX.shape
         self.pred_list=[]
         inp_pred = self.inputX
         for  i in range(self.n_levels):
@@ -85,7 +87,8 @@ class SRN_Deblurnet():
 
     def change_lr(self,iter):
         lr_new = polynomial_lr(self.base_lr,iter,self.epochs,0.3)
-        self.optimizer = torch.optim.Adam(self.SRN_block.parameters(), lr = lr_new, betas=[self.opt.beta1,0.999])
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr_new
         self.opt.lr = lr_new
 
     def set_requires_grad(self, nets, requires_grad=False):

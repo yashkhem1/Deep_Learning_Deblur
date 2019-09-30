@@ -28,7 +28,7 @@ class Options:
         # ===============================================================
         self.parser.add_argument('--scale', type=float, default=0.5, help='Scale Value for SRN-DeblunNet')
         self.parser.add_argument('--n_levels', type=int, default=3, help='Number of Training levels for SRN-DeblunNet')
-        self.parser.add_argument('--color', type=int, default=1, help='Set whether training on color images(1) or greyscale image(0)')
+        self.parser.add_argument('--color', type=int, default=0, help='Set whether training on color images(1) or greyscale image(0)')
         self.parser.add_argument('--train', type=int, default=1, help='Set training or test')
 
 

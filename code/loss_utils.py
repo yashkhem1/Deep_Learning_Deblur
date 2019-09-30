@@ -22,6 +22,8 @@ def cycle_consistency_loss  (real_im, reconstructed_im, lambda_weight):
     return lambda_weight*reconstructed_loss
 
 def resize2d(img, size):
+    if len(list(img.shape)) ==3:
+        img = img.reshape(img.shape[0],1,img.shape[1],img.shape[2])
     return F.interpolate(img, size,mode='bilinear')
 
 def multi_scale_loss (real_im, out_list, nlevels):
