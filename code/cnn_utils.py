@@ -428,14 +428,14 @@ class DecoderResblock(nn.Module):
             model += [ResnetBlock(input_nc, padding_type, norm_layer, False, False)]
 
         if double:
-            model = [nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=2, padding=2, output_padding=1),
+            model += [nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=2, padding=2, output_padding=1),
                      nn.ReLU(True)]
         else:
-            model = [nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=1, padding=2),
+            model += [nn.ConvTranspose2d(input_nc, output_nc, kernel_size=5, stride=1, padding=2),
                      nn.ReLU(True)]
 
-        for i in range(3):
-            model+= [ResnetBlock(output_nc,padding_type,norm_layer,False,False)]
+        # for i in range(3):
+        #     model+= [ResnetBlock(output_nc,padding_type,norm_layer,False,False)]
 
         self.model = nn.Sequential(*model)
 

@@ -7,7 +7,7 @@ import torchvision.transforms.functional as transforms
 
 torch.set_default_tensor_type('torch.FloatTensor')
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def polynomial_lr(base_lr,iter,max_iter,power):
     return base_lr*((1-iter/max_iter)**power)
@@ -16,6 +16,7 @@ class SRN_Deblurnet():
 
     def __init__(self,opt):
         super(SRN_Deblurnet,self).__init__()
+        self.device = torch.device("cuda:"+opt.gpuID if torch.cuda.is_available() else "cpu")
         self.opt = opt
         self.scale = opt.scale
         self.n_levels = opt.n_levels
@@ -28,7 +29,7 @@ class SRN_Deblurnet():
             self.input_nc = 2
             self.output_nc = 1
 
-        self.SRN_block = SRN_block(self.input_nc,self.output_nc,opt.ngf,opt.padding_type).to(device)
+        self.SRN_block = SRN_block(self.input_nc,self.output_nc,opt.ngf,opt.padding_type).to(self.device)
         # self.testSRN_block = SRN_block(6,3,opt.ngf,opt.padding_type).to(device)
         self.SRN_block.apply(init_weights)
         print(self.SRN_block)
@@ -39,8 +40,8 @@ class SRN_Deblurnet():
         self.optimizer = torch.optim.Adam(self.SRN_block.parameters(), lr = opt.lr, betas=[opt.beta1,0.999])
 
     def get_input(self,inputX,inputY):
-        self.inputX = inputX.to(device)
-        self.inputY = inputY.to(device)
+        self.inputX = inputX.to(self.device)
+        self.inputY = inputY.to(self.device)
         # if (not(self.opt.color)):
         #     self.inputX = transforms.to_tensor(transforms.to_grayscale(transforms.to_pil_image(self.inputX)))
         #     self.inputY = transforms.to_tensor(transforms.to_grayscale(transforms.to_pil_image(self.inputY)))
@@ -69,7 +70,7 @@ class SRN_Deblurnet():
             inp_blur = resize2d(self.inputX,(hi,wi))
             inp_pred = resize2d(inp_pred,(hi,wi)).detach()
             inp_all = torch.cat([inp_blur,inp_pred],1)  ##Concatenating along the color channels
-            inp_pred = self.SRN_block(inp_all).to(device)
+            inp_pred = self.SRN_block(inp_all).to(self.device)
             self.pred_list.append(inp_pred)
             del inp_blur,inp_all
 
@@ -91,7 +92,7 @@ class SRN_Deblurnet():
             inp_blur = resize2d(input, (hi, wi))
             inp_pred = resize2d(inp_pred, (hi, wi)).detach()
             inp_all = torch.cat([inp_blur, inp_pred], 1)  ##Concatenating along the color channels
-            inp_pred = self.SRN_block(inp_all).to(device)
+            inp_pred = self.SRN_block(inp_all).to(self.device)
             del inp_blur , inp_all
             # pred_list.append(inp_pred)
 

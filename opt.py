@@ -15,13 +15,14 @@ class Options:
         self.parser.add_argument('--lr', type=float,  default=0.0001 , help='Learning Rate for the model')
         self.parser.add_argument('--epochs', type=float, default=2000, help='Number of epochs in training')
         self.parser.add_argument('--beta1', type=int, default=0.9, help='Value of Beta1 for adam optimizer')
-        self.parser.add_argument('--train_batch_size', type=int, default=16, help='Training Batch Size')
+        self.parser.add_argument('--train_batch_size', type=int, default=10, help='Training Batch Size')
         self.parser.add_argument('--test_batch_size', type=int, default=1, help='Testing Batch Size')
         self.parser.add_argument('--input_nc', type=int, default=3, help='Input Number of Channels ')
         self.parser.add_argument('--output_nc', type=int, default=3, help='Output Number of Channels ')
         self.parser.add_argument('--ngf', type=int, default=32, help='Number of Intermediate channels')
         self.parser.add_argument('--padding_type', type=str, default='replicate', help='Type of padding for convolution')
         self.parser.add_argument('--windowSize', type=int, default=256, help='Crop Window Size')
+        self.parser.add_argument('--gpuID', type=int, default=0, help='default ID of gpu')
 
         # ===============================================================
         #                    SRN-DeblurNet options

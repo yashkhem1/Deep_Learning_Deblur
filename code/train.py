@@ -21,7 +21,7 @@ import pickle
 
 torch.set_default_tensor_type('torch.FloatTensor')
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 # if torch.cuda.is_available():
 # 	torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -29,6 +29,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # 	torch.set_default_tensor_type('torch.FloatTensor')
 
 def train(opt, model_name):
+	device = torch.device("cuda:"+opt.gpuID if torch.cuda.is_available() else "cpu")
 
 	train_set = GOPRODataset('train', opt.windowSize, opt.color)
 	print('Loaded training set')
