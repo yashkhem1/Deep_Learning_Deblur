@@ -79,11 +79,11 @@ class SRN_Deblurnet():
         # pred_list = []
         if not(self.opt.color):
             input_grayscale = []
-            for i in input:
-                input_grayscale.append(input[i][:, 0, :, :].tolist())
-                input_grayscale.append(input[i][:, 1, :, :].tolist())
-                input_grayscale.append(input[i][:, 2, :, :].tolist())
-            input = torch.tensor(input_grayscale)
+            for i in range(input.shape[0]):
+                input_grayscale.append(input[i][0, :, :].unsqueeze(0).tolist())
+                input_grayscale.append(input[i][1, :, :].unsqueeze(0).tolist())
+                input_grayscale.append(input[i][2, :, :].unsqueeze(0).tolist())
+            input = torch.tensor(input_grayscale).to(self.device)
         inp_pred = input
         for i in range(self.n_levels):
             scale = self.scale ** (self.n_levels - i - 1)

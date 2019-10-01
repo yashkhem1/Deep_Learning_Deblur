@@ -447,21 +447,32 @@ class DecoderResblock(nn.Module):
 class SRN_block(nn.Module):
     def __init__(self,input_nc,output_nc,ngf=32,padding_type='replicate'):
         super(SRN_block,self).__init__()
-        model = []
-        model += [EncoderResblock(input_nc,ngf,False,padding_type)]
-        model += [EncoderResblock(ngf, ngf*2, True, padding_type)]
-        model += [EncoderResblock(ngf*2, ngf*4, True, padding_type)]
+        # model = []
+        self.erb1 = EncoderResblock(input_nc,ngf,False,padding_type)
+        self.erb2 = EncoderResblock(ngf, ngf*2, True, padding_type)
+        self.erb3 = EncoderResblock(ngf*2, ngf*4, True, padding_type)
         ## Insert LSTM here later
-        model += [DecoderResblock(ngf*4,ngf*2,True,padding_type)]
-        model += [DecoderResblock(ngf*2, ngf, True, padding_type)]
+        self.drb3 = DecoderResblock(ngf*4,ngf*2,True,padding_type)
+        self.drb2 = DecoderResblock(ngf*2, ngf, True, padding_type)
+        model=[]
         for i in range(3):
             model += [ResnetBlock(ngf, padding_type,None, False, False)]
         model += [nn.ReflectionPad2d(2), nn.Conv2d(ngf, output_nc, kernel_size=5, stride=1, padding=0)] #Without RELU
 
-        self.model = nn.Sequential(*model)
+        self.drb1 = nn.Sequential(*model)
 
     def forward(self,input):
-        return self.model(input)
+        # return self.model(input)
+        erb1x = self.erb1(input)
+        erb2x = self.erb2(erb1x)
+        erb3x = self.erb3(erb2x)
+        drb3x = self.drb3(erb3x)
+        drb3x = drb3x + erb2x
+        drb2x = self.drb2(drb3x)
+        drb2x = drb2x + erb1x
+        out = self.drb1(drb2x)
+        return out
+
 
 
 

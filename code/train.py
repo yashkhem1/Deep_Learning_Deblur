@@ -235,9 +235,9 @@ def train(opt, model_name):
 				torch.set_grad_enabled(False)
 				sharp = model.forward_get(fixed_X)
 				if not(opt.color):
-					numImages = sharp.shape[0]/3
+					numImages = int(sharp.shape[0]/3)
 				else:
-					numImages = sharp.shape[0]
+					numImages = int(sharp.shape[0])
 				for j in range(numImages):
 					if not(opt.color):
 						sharp_image = torch.cat([sharp[j*3],sharp[j*3+1], sharp[j*3+2]],0)

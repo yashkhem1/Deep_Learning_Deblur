@@ -97,9 +97,9 @@ class GOPRODataset(torch.utils.data.Dataset):
             #     raise ValueError
             if not(self.color):
                 X_temp = torch.from_numpy(X).float()
-                X_temp = TF.to_tensor(TF.to_grayscale(TF.to_pil_image(X_temp)))
+                X_temp = TF.to_tensor(TF.to_grayscale(TF.to_pil_image(X_temp))) * 255.0
                 y_temp = torch.from_numpy(y).float()
-                y_temp = TF.to_tensor(TF.to_grayscale(TF.to_pil_image(y_temp)))
+                y_temp = TF.to_tensor(TF.to_grayscale(TF.to_pil_image(y_temp))) * 255.0
                 return X_temp.float(),y_temp.float()
 
             else:
