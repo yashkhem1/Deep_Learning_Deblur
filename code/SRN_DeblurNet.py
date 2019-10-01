@@ -16,7 +16,7 @@ class SRN_Deblurnet():
 
     def __init__(self,opt):
         super(SRN_Deblurnet,self).__init__()
-        self.device = torch.device("cuda:"+opt.gpuID if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:"+str(opt.gpuID) if torch.cuda.is_available() else "cpu")
         self.opt = opt
         self.scale = opt.scale
         self.n_levels = opt.n_levels

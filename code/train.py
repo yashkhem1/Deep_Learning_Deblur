@@ -29,7 +29,7 @@ torch.set_default_tensor_type('torch.FloatTensor')
 # 	torch.set_default_tensor_type('torch.FloatTensor')
 
 def train(opt, model_name):
-	device = torch.device("cuda:"+opt.gpuID if torch.cuda.is_available() else "cpu")
+	device = torch.device("cuda:"+str(opt.gpuID) if torch.cuda.is_available() else "cpu")
 
 	train_set = GOPRODataset('train', opt.windowSize, opt.color)
 	print('Loaded training set')
