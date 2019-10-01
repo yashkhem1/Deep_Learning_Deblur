@@ -30,9 +30,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def train(opt, model_name):
 
-	train_set = GOPRODataset('train', opt.windowSize)
+	train_set = GOPRODataset('train', opt.windowSize, opt.color)
 	print('Loaded training set')
-	test_set = GOPRODataset('test', opt.windowSize)
+	test_set = GOPRODataset('test', opt.windowSize, opt.color)
 	print('Loaded val set')
 
 	train_loader = torch.utils.data.DataLoader(train_set,batch_size=opt.train_batch_size,shuffle=True, num_workers=0)
@@ -233,10 +233,18 @@ def train(opt, model_name):
 			if (epoch+1)%1 == 0:
 				torch.set_grad_enabled(False)
 				sharp = model.forward_get(fixed_X)
-				for j in range(sharp.size()[0]):
+				if not(opt.color):
+					numImages = sharp.shape[0]/3
+				else:
+					numImages = sharp.shape[0]
+				for j in range(numImages):
+					if not(opt.color):
+						sharp_image = torch.cat([sharp[j*3],sharp[j*3+1], sharp[j*3+2]],0)
+					else:
+						sharp_image = sharp[j]
 					cv2.imwrite( os.path.join('srn_results/pred_sharp',
 						'sharp_{}_{}_{}.png'.format(batch, j, epoch)),
-					  np.array(scale_up(sharp[j]).cpu().detach()).reshape(sharp[j].shape[1],sharp[j].shape[2],3))
+					  np.array(scale_up(sharp_image).cpu().detach()).reshape(sharp_image.shape[1],sharp_image.shape[2],3))
 
 					cv2.imwrite( os.path.join('srn_results/inputs',
 						'blur_{}_{}_{}.png'.format(batch, j, epoch)),

@@ -4,6 +4,7 @@ import torch.utils.data
 import glob
 import cv2
 import random
+import torchvision.transforms.functional as TF
 
 # class NYU_Depth_V2(torch.utils.data.Dataset):
 #     def __init__(self, data_type, transform=None):
@@ -60,10 +61,11 @@ import random
 
 
 class GOPRODataset(torch.utils.data.Dataset):
-    def __init__(self, data_type, windowSize, transform=None):
+    def __init__(self, data_type, windowSize, color, transform=None):
         blur_path = 'data/blur'
         sharp_path = 'data/sharp'
         self.windowSize = windowSize
+        self.color = color
         if data_type != 'train'  and data_type != 'test':
             raise ValueError('Invalid data type')
         self.data_type = data_type
@@ -93,8 +95,15 @@ class GOPRODataset(torch.utils.data.Dataset):
 
             # else:
             #     raise ValueError
+            if not(self.color):
+                X_temp = torch.from_numpy(X).float()
+                X_temp = TF.to_tensor(TF.to_grayscale(TF.to_pil_image(X_temp)))
+                y_temp = torch.from_numpy(y).float()
+                y_temp = TF.to_tensor(TF.to_grayscale(TF.to_pil_image(y_temp)))
+                return X_temp.float(),y_temp.float()
 
-            return torch.from_numpy(X).float(), torch.from_numpy(y).float()
+            else:
+                return torch.from_numpy(X).float(), torch.from_numpy(y).float()
 
         if self.data_type == 'test':
             # if self.X_test[idx][12:-7] == self.y_test[idx][14:-9]:

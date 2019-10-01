@@ -3,6 +3,7 @@ from code.cnn_utils import EncoderResblock,DecoderResblock,SRN_block
 from code.init_model import init_weights
 import itertools
 from code.loss_utils import multi_scale_loss,resize2d
+import torchvision.transforms.functional as transforms
 
 torch.set_default_tensor_type('torch.FloatTensor')
 
@@ -20,8 +21,12 @@ class SRN_Deblurnet():
         self.n_levels = opt.n_levels
         self.color = opt.color
         self.epochs = opt.epochs
-        self.input_nc = 6
-        self.output_nc = 3
+        if self.color:
+            self.input_nc = 6
+            self.output_nc = 3
+        else:
+            self.input_nc = 2
+            self.output_nc = 1
 
         self.SRN_block = SRN_block(self.input_nc,self.output_nc,opt.ngf,opt.padding_type).to(device)
         # self.testSRN_block = SRN_block(6,3,opt.ngf,opt.padding_type).to(device)
@@ -36,18 +41,25 @@ class SRN_Deblurnet():
     def get_input(self,inputX,inputY):
         self.inputX = inputX.to(device)
         self.inputY = inputY.to(device)
-        if (not(self.opt.color)):
-            self.inputX = torch.sum(inputX,1)/3
-            self.inputY = torch.sum(inputY,1)/3
-            self.inputX= self.inputX.unsqueeze(1)
-            self.inputY = self.inputY.unsqueeze(1)
-            self.inputX = torch.cat([self.inputX,self.inputX,self.inputX],1)
-            # print("X ki shape", self.inputX.shape)
-            self.inputY = torch.cat([self.inputY, self.inputY, self.inputY], 1)
+        # if (not(self.opt.color)):
+        #     self.inputX = transforms.to_tensor(transforms.to_grayscale(transforms.to_pil_image(self.inputX)))
+        #     self.inputY = transforms.to_tensor(transforms.to_grayscale(transforms.to_pil_image(self.inputY)))
+
+            # self.inputX = torch.sum(inputX,1)/3
+            # self.inputY = torch.sum(inputY,1)/3
+            # self.inputX= self.inputX.unsqueeze(1)
+            # self.inputY = self.inputY.unsqueeze(1)
+            # self.inputX = torch.cat([self.inputX,self.inputX,self.inputX],1)
+            # # print("X ki shape", self.inputX.shape)
+            # self.inputY = torch.cat([self.inputY, self.inputY, self.inputY], 1)
             # print("Y ki shape", self.inputY.shape)
 
     def forward(self):
-        _, _, h, w = self.inputX.shape
+        # if self.opt.color:
+        #     _, _, h, w = self.inputX.shape
+        # else:
+        #     _, h, w = self.inputX.shape
+        _ , _, h, w = self.inputX.shape
         self.pred_list=[]
         inp_pred = self.inputX
         for  i in range(self.n_levels):
@@ -61,9 +73,16 @@ class SRN_Deblurnet():
             self.pred_list.append(inp_pred)
             del inp_blur,inp_all
 
-    def forward_get(self,input):
+    def forward_get(self,input):   ## Specifically for testing the model
         n, c, h, w = input.shape
         # pred_list = []
+        if not(self.opt.color):
+            input_grayscale = []
+            for i in input:
+                input_grayscale.append(input[i][:, 0, :, :].tolist())
+                input_grayscale.append(input[i][:, 1, :, :].tolist())
+                input_grayscale.append(input[i][:, 2, :, :].tolist())
+            input = torch.tensor(input_grayscale)
         inp_pred = input
         for i in range(self.n_levels):
             scale = self.scale ** (self.n_levels - i - 1)
