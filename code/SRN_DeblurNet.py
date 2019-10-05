@@ -75,6 +75,8 @@ class SRN_Deblurnet():
             del inp_blur,inp_all
 
     def forward_get(self,input):   ## Specifically for testing the model
+        if torch.cuda.is_available():
+            input = input.cuda()
         n, c, h, w = input.shape
         # pred_list = []
         if not(self.opt.color):
@@ -83,7 +85,14 @@ class SRN_Deblurnet():
                 input_grayscale.append(input[i][0, :, :].unsqueeze(0).tolist())
                 input_grayscale.append(input[i][1, :, :].unsqueeze(0).tolist())
                 input_grayscale.append(input[i][2, :, :].unsqueeze(0).tolist())
-            input = torch.tensor(input_grayscale).to(self.device)
+                if torch.cuda.is_available():
+                    input = torch.tensor(input_grayscale).cuda() #.to(self.device)
+                else:
+                    input = torch.tensor(input_grayscale)
+                # input = torch.tensor(input_grayscale)
+        # if torch.cuda.is_available():
+        #     inp_pred = input.cuda()
+        # else:
         inp_pred = input
         for i in range(self.n_levels):
             scale = self.scale ** (self.n_levels - i - 1)
@@ -92,7 +101,7 @@ class SRN_Deblurnet():
             inp_blur = resize2d(input, (hi, wi))
             inp_pred = resize2d(inp_pred, (hi, wi)).detach()
             inp_all = torch.cat([inp_blur, inp_pred], 1)  ##Concatenating along the color channels
-            inp_pred = self.SRN_block(inp_all).to(self.device)
+            inp_pred = self.SRN_block(inp_all) #.to(self.device)
             del inp_blur , inp_all
             # pred_list.append(inp_pred)
 
