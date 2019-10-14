@@ -259,9 +259,9 @@ def train(opt, model_name):
 
 			print("Time to finish epoch ", time.time()-since)
 
-			torch.save(model, 'SRNmodel/best_model.pt')
+			torch.save(model, 'SRNmodel/best_model_new.pt')
 			loss_multi_scale.append(float(model.ms_loss.detach()))
-			with open('SRNloss/loss_ms.pk', 'wb') as f:
+			with open('SRNloss/loss_ms_new.pk', 'wb') as f:
 				pickle.dump(loss_multi_scale, f)
 
 

@@ -13,7 +13,7 @@ modelType = sys.argv[3]
 color = int(sys.argv[4])
 
 
-testImage =  np.array(cv2.resize(cv2.imread(testImage),(512,512)))
+testImage =  np.array(cv2.imread(testImage))
 cv2.imwrite( './testInput.jpeg',np.array(testImage).reshape(testImage.shape[0], testImage.shape[1], 3))
 testImage = torch.from_numpy(np.array(testImage).reshape(1,3,testImage.shape[0],testImage.shape[1])).float()
 testImage = scale_down(testImage).to(device)
