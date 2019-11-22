@@ -77,18 +77,18 @@ class SRN_Deblurnet():
     def forward_get(self,input):   ## Specifically for testing the model
         if torch.cuda.is_available():
             input = input.cuda()
-        n, c, h, w = input.shape
+        n, c, h, w = input.shape   ##For grayscale images c will be equal to 1
         # pred_list = []
-        if not(self.opt.color):
-            input_grayscale = []
-            for i in range(input.shape[0]):
-                input_grayscale.append(input[i][0, :, :].unsqueeze(0).tolist())
-                input_grayscale.append(input[i][1, :, :].unsqueeze(0).tolist())
-                input_grayscale.append(input[i][2, :, :].unsqueeze(0).tolist())
-                if torch.cuda.is_available():
-                    input = torch.tensor(input_grayscale).cuda() #.to(self.device)
-                else:
-                    input = torch.tensor(input_grayscale)
+        # if not(self.opt.color):
+        #     input_grayscale = []
+        #     for i in range(input.shape[0]):
+        #         input_grayscale.append(input[i][0, :, :].unsqueeze(0).tolist())
+        #         input_grayscale.append(input[i][1, :, :].unsqueeze(0).tolist())
+        #         input_grayscale.append(input[i][2, :, :].unsqueeze(0).tolist())
+        #         if torch.cuda.is_available():
+        #             input = torch.tensor(input_grayscale).cuda() #.to(self.device)
+        #         else:
+        #             input = torch.tensor(input_grayscale)
                 # input = torch.tensor(input_grayscale)
         # if torch.cuda.is_available():
         #     inp_pred = input.cuda()
