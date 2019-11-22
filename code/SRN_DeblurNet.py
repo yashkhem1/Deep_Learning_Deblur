@@ -46,14 +46,6 @@ class SRN_Deblurnet():
         #     self.inputX = transforms.to_tensor(transforms.to_grayscale(transforms.to_pil_image(self.inputX)))
         #     self.inputY = transforms.to_tensor(transforms.to_grayscale(transforms.to_pil_image(self.inputY)))
 
-            # self.inputX = torch.sum(inputX,1)/3
-            # self.inputY = torch.sum(inputY,1)/3
-            # self.inputX= self.inputX.unsqueeze(1)
-            # self.inputY = self.inputY.unsqueeze(1)
-            # self.inputX = torch.cat([self.inputX,self.inputX,self.inputX],1)
-            # # print("X ki shape", self.inputX.shape)
-            # self.inputY = torch.cat([self.inputY, self.inputY, self.inputY], 1)
-            # print("Y ki shape", self.inputY.shape)
 
     def forward(self):
         # if self.opt.color:

@@ -31,16 +31,16 @@ else:
         testImage = np.array(cv2.imread(testImage))
         cv2.imwrite('./testInput.jpeg', np.array(testImage).reshape(testImage.shape[0], testImage.shape[1], 3))
         testImage = torch.from_numpy(np.array(testImage).reshape(1, 3, testImage.shape[0], testImage.shape[1])).float()
-        print(testImage.shape)
+        # print(testImage.shape)
         input_grayscale.append(testImage[0,0, :, :].unsqueeze(0).tolist())
         input_grayscale.append(testImage[0,1, :, :].unsqueeze(0).tolist())
         input_grayscale.append(testImage[0,2, :, :].unsqueeze(0).tolist())
         testImage = torch.tensor(input_grayscale).float()
-        print("Shape of Test Image ", testImage.shape)
+        # print("Shape of Test Image ", testImage.shape)
         testImage = scale_down(testImage).to(device)
 
 
-print(testImage)
+# print(testImage)
 output=None
 
 if modelType=='srn':
@@ -49,41 +49,12 @@ if modelType=='srn':
         model = torch.load("./SRNmodel/" + bestModel, map_location='cuda:0')
         torch.set_grad_enabled(False)
         output = model.forward_get(testImage)
-        # n, c, h, w = testImage.shape
-        # # pred_list = []
-        #
-        # for i in range(model.n_levels):
-        #     scale = model.scale ** (model.n_levels - i - 1)
-        #     hi = int(round(h * scale))
-        #     wi = int(round(w * scale))
-        #     inp_blur = resize2d(testImage, (hi, wi))
-        #     inp_pred = resize2d(inp_pred, (hi, wi)).detach()
-        #     inp_all = torch.cat([inp_blur, inp_pred], 1)  ##Concatenating along the color channels
-        #     inp_pred = model.SRN_block(inp_all).to(device)
-        #     del inp_blur, inp_all
-            # pred_list.append(inp_pred)
-
-
         torch.set_grad_enabled(True)
+
     else:
         model = torch.load("./SRNmodel/" + bestModel, map_location='cpu')
         torch.set_grad_enabled(False)
         output=model.forward_get(testImage)
-        # n, c, h, w = testImage.shape
-        # # pred_list = []
-        #
-        # for i in range(model.n_levels):
-        #     scale = model.scale ** (model.n_levels - i - 1)
-        #     hi = int(round(h * scale))
-        #     wi = int(round(w * scale))
-        #     inp_blur = resize2d(testImage, (hi, wi))
-        #     inp_pred = resize2d(inp_pred, (hi, wi)).detach()
-        #     inp_all = torch.cat([inp_blur, inp_pred], 1)  ##Concatenating along the color channels
-        #     inp_pred = model.SRN_block(inp_all).to(device)
-        #     del inp_blur, inp_all
-        #     # pred_list.append(inp_pred)
-
-
         torch.set_grad_enabled(True)
 
     # output=inp_pred
@@ -94,12 +65,9 @@ if color:
 
 else:
     if not testGray:
-        print("Output Shape ", output.shape)
+        # print("Output Shape ", output.shape)
         sharp_image = torch.cat([output[0], output[1],  output[2]], 0)
-        cv2.imwrite('./testTest.jpeg',
-                    np.array(scale_up(sharp_image[2]).cpu().detach()).reshape(sharp_image.shape[1], sharp_image.shape[2],
-                                                                           1))
-        print("Sharp image shape", sharp_image.shape)
+        # print("Sharp image shape", sharp_image.shape)
         cv2.imwrite('./testOutput.jpeg',
                     np.array(scale_up(sharp_image).cpu().detach()).reshape(sharp_image.shape[1], sharp_image.shape[2], 3))
     else:
