@@ -14,21 +14,34 @@ color = int(sys.argv[4])
 testGray = int(sys.argv[5])   #If we are testing on GrayScale images
 
 if color:
-    testImage =  np.array(cv2.imread(testImage))
+    testImage = cv2.imread(testImage)
+    if testImage.shape[0]!=720 or testImage.shape[1]!=1280:
+        testImage = np.array(cv2.resize(testImage,(1280,720)))
+        print('hello')
+    else:
+        testImage = np.array(testImage)
     cv2.imwrite( './testInput.jpeg',np.array(testImage).reshape(testImage.shape[0], testImage.shape[1], 3))
     testImage = torch.from_numpy(np.array(testImage).reshape(1,3,testImage.shape[0],testImage.shape[1])).float()
     testImage = scale_down(testImage).to(device)
 
 else:
     if testGray:
-        testImage = np.array(cv2.cvtColor(cv2.imread(testImage),cv2.COLOR_BGR2GRAY))
+        testImage = cv2.cvtColor(cv2.imread(testImage),cv2.COLOR_BGR2GRAY)
+        if testImage.shape[0] != 720 or testImage.shape[1] != 1280:
+            testImage = np.array(cv2.resize(testImage, (1280, 720)))
+        else:
+            testImage = np.array(testImage)
         cv2.imwrite('./testInput.jpeg', np.array(testImage).reshape(testImage.shape[0], testImage.shape[1], 1))
         testImage = torch.from_numpy(np.array(testImage).reshape(1, 1, testImage.shape[0], testImage.shape[1])).float()
         testImage = scale_down(testImage).to(device)
 
     else:
         input_grayscale = []
-        testImage = np.array(cv2.imread(testImage))
+        testImage = cv2.imread(testImage)
+        if testImage.shape[0] != 720 or testImage.shape[1] != 1280  :
+            testImage = np.array(cv2.resize(testImage, (1280, 720)))
+        else:
+            testImage = np.array(testImage)
         cv2.imwrite('./testInput.jpeg', np.array(testImage).reshape(testImage.shape[0], testImage.shape[1], 3))
         testImage = torch.from_numpy(np.array(testImage).reshape(1, 3, testImage.shape[0], testImage.shape[1])).float()
         # print(testImage.shape)
